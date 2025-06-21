@@ -1,0 +1,2575 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tile Storm - Gra Muzyczna</title>
+    <style>
+        /* ===== PODSTAWOWE STYLE CSS ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        /* ===== CONTAINER GŁÓWNY ===== */
+        .game-container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* ===== MENU GŁÓWNE ===== */
+        .main-menu {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .menu-title {
+            font-size: 3em;
+            color: #333;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .menu-button {
+            display: block;
+            width: 250px;
+            padding: 15px 30px;
+            margin: 15px auto;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-size: 1.2em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .menu-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        /* ===== PLANSZA GRY ===== */
+        .game-board {
+            width: 400px;
+            height: 600px;
+            background: #000;
+            position: relative;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+            display: none;
+        }
+
+        .game-lane {
+            width: 25%;
+            height: 100%;
+            position: absolute;
+            border-right: 2px solid #333;
+            background: linear-gradient(to bottom, #1a1a1a 0%, #2d2d2d 100%);
+        }
+
+        .game-lane:nth-child(1) { left: 0; }
+        .game-lane:nth-child(2) { left: 25%; }
+        .game-lane:nth-child(3) { left: 50%; }
+        .game-lane:nth-child(4) { left: 75%; border-right: none; }
+
+        /* ===== KAFELKI PIANO ===== */
+        .piano-tile {
+            width: 100%;
+            height: 150px;
+            position: absolute;
+            background: linear-gradient(145deg, #2c3e50, #34495e);
+            border: 2px solid #444;
+            cursor: pointer;
+            transition: all 0.1s ease;
+            box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.1);
+        }
+
+        .piano-tile.active {
+            background: linear-gradient(145deg, #e74c3c, #c0392b);
+            box-shadow: 0 0 20px rgba(231, 76, 60, 0.6);
+            animation: pulse 0.3s ease-in-out;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .piano-tile.clicked {
+            background: linear-gradient(145deg, #27ae60, #2ecc71);
+            transform: scale(0.95);
+        }
+
+        .piano-tile.missed {
+            background: linear-gradient(145deg, #e74c3c, #c0392b);
+            animation: shake 0.5s ease-in-out;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }        /* ===== INTERFEJS GRY ===== */
+        .game-ui {
+            display: none;
+        }.score-display {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 12px;
+            font-size: 1.5em;
+            backdrop-filter: blur(10px);
+            z-index: 100;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .score-line {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            gap: 20px;
+        }
+
+        .lives-container {
+            display: flex;
+            gap: 5px;
+        }
+
+        .life-icon {
+            font-size: 1.2em;
+            transition: all 0.3s ease;
+            filter: drop-shadow(0 0 3px rgba(255, 20, 147, 0.8));
+        }
+
+        .life-icon.lost {
+            opacity: 0.3;
+            filter: grayscale(100%) drop-shadow(0 0 3px rgba(255, 255, 255, 0.3));
+            transform: scale(0.8);
+        }
+
+        .life-icon.critical {
+            animation: heartbeat 0.8s infinite;
+        }
+
+        @keyframes heartbeat {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }        .speed-indicator {
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+            padding: 5px 15px;
+            border-radius: 15px;
+            font-size: 0.9em;
+            text-align: center;
+        }
+
+        /* ===== EKRAN GAME OVER ===== */
+        .game-over {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.95);
+            color: white;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            display: none;
+            z-index: 200;
+            backdrop-filter: blur(15px);
+        }
+
+        .final-score {
+            font-size: 2em;
+            color: #e74c3c;
+            margin: 20px 0;
+        }
+
+        .piano-tile.bomb {
+            background: linear-gradient(145deg, #e74c3c, #c0392b);
+            border: 3px solid #a93226;
+            box-shadow: 0 0 15px rgba(231, 76, 60, 0.6);
+            animation: bombPulse 1s ease-in-out infinite alternate;
+            position: relative;
+        }
+
+        .piano-tile.bomb::before {
+            content: "💣";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+        }
+
+        .piano-tile.heal {
+            background: linear-gradient(145deg, #27ae60, #2ecc71);
+            border: 3px solid #16a085;
+            box-shadow: 0 0 15px rgba(39, 174, 96, 0.6);
+            animation: healGlow 1.5s ease-in-out infinite alternate;
+            position: relative;
+        }
+
+        .piano-tile.heal::before {
+            content: "💚";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+        }
+
+        @keyframes bombPulse {
+            0% { 
+                box-shadow: 0 0 15px rgba(231, 76, 60, 0.6);
+                transform: scale(1);
+            }
+            100% { 
+                box-shadow: 0 0 25px rgba(231, 76, 60, 0.9);
+                transform: scale(1.03);
+            }
+        }
+
+        @keyframes healGlow {
+            0% { 
+                box-shadow: 0 0 15px rgba(39, 174, 96, 0.6);
+                filter: brightness(1);
+            }
+            100% { 
+                box-shadow: 0 0 25px rgba(39, 174, 96, 0.9);
+                filter: brightness(1.2);
+            }
+        }
+
+        /* Efekt eksplozji bomby */
+        .bomb-explosion {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle, rgba(231, 76, 60, 0.9) 0%, rgba(255, 193, 7, 0.8) 30%, transparent 70%);
+            animation: explosion 1s ease-out;
+            pointer-events: none;
+            z-index: 75;
+        }
+
+        @keyframes explosion {
+            0% { 
+                opacity: 0; 
+                transform: scale(0);
+            }
+            50% { 
+                opacity: 1; 
+                transform: scale(1.5);
+            }
+            100% { 
+                opacity: 0; 
+                transform: scale(2);
+            }
+        }
+
+        /* Efekt leczenia */
+        .heal-effect {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: radial-gradient(circle, rgba(39, 174, 96, 0.8) 0%, rgba(46, 204, 113, 0.6) 50%, transparent 70%);
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            animation: healPulse 0.8s ease-out;
+            pointer-events: none;
+            z-index: 75;
+        }
+
+        @keyframes healPulse {
+            0% { 
+                opacity: 0; 
+                transform: translate(-50%, -50%) scale(0);
+            }
+            50% { 
+                opacity: 1; 
+                transform: translate(-50%, -50%) scale(1.2);
+            }
+            100% { 
+                opacity: 0; 
+                transform: translate(-50%, -50%) scale(1.5);
+            }
+        }
+
+        /* ===== USTAWIENIA DŹWIĘKU ===== */
+        .settings-panel {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            display: none;
+        }
+
+        .volume-slider {
+            width: 200px;
+            margin: 20px 0;
+        }
+
+        .sound-toggle {
+            background: #27ae60;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 15px;
+            cursor: pointer;
+            margin: 10px;
+        }
+
+        .sound-toggle.muted {
+            background: #e74c3c;
+        }
+
+        /* ===== TABELA WYNIKÓW ===== */
+        .leaderboard {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            display: none;
+            max-width: 400px;
+        }
+
+        .leaderboard-title {
+            font-size: 2em;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .score-entry {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            margin: 5px 0;
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 10px;
+        }
+
+        .score-entry.highlight {
+            background: rgba(231, 76, 60, 0.2);
+            animation: highlight 1s ease-in-out;
+        }
+
+        @keyframes highlight {
+            0%, 100% { background: rgba(231, 76, 60, 0.2); }
+            50% { background: rgba(231, 76, 60, 0.4); }
+        }
+
+        /* ===== EFEKTY WIZUALNE ===== */
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: #fff;
+            pointer-events: none;
+            border-radius: 50%;
+        }
+
+        .combo-text {
+            position: absolute;
+            color: #f39c12;
+            font-size: 1.5em;
+            font-weight: bold;
+            pointer-events: none;
+            animation: comboFloat 1s ease-out forwards;
+        }
+
+        @keyframes comboFloat {
+            0% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-50px);
+            }
+        }
+
+        /* ===== OKNO WPROWADZANIA NAZWY ===== */
+        .name-input-modal {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            display: none;
+            z-index: 250;
+            min-width: 300px;
+        }
+
+        .name-input-modal h3 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+
+        .name-input-field {
+            width: 100%;
+            padding: 10px 15px;
+            border: 2px solid #667eea;
+            border-radius: 15px;
+            font-size: 1.1em;
+            margin: 10px 0;
+            text-align: center;
+            outline: none;
+        }
+
+        .name-input-field:focus {
+            border-color: #764ba2;
+            box-shadow: 0 0 10px rgba(102, 126, 234, 0.3);
+        }
+
+        .name-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .name-button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 15px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .name-button.confirm {
+            background: linear-gradient(45deg, #27ae60, #2ecc71);
+            color: white;
+        }
+
+        .name-button.skip {
+            background: linear-gradient(45deg, #95a5a6, #7f8c8d);
+            color: white;
+        }
+
+        .name-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        /* ===== RESPONSYWNOŚĆ ===== */
+        @media (max-width: 768px) {
+            .game-board {
+                width: 90vw;
+                max-width: 400px;
+            }
+            
+            .main-menu {
+                padding: 20px;
+                margin: 20px;
+            }            
+            .menu-title {
+                font-size: 2em;
+            }
+            
+            .score-display {
+                font-size: 1.2em;
+                padding: 10px 15px;
+            }
+            
+            .score-line {
+                gap: 15px;
+            }
+            
+            .life-icon {
+                font-size: 1em;
+            }
+        }        .music-panel {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            display: none;
+        }/* ===== NOWE TYPY KLOCKÓW ===== */
+        .piano-tile.multi-hit {
+            background: linear-gradient(145deg, #f39c12, #e67e22);
+            border: 3px solid #d35400;
+            position: relative;
+        }
+
+        .piano-tile.multi-hit::after {
+            content: attr(data-hits);
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 2em;
+            font-weight: bold;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .piano-tile.speed-boost {
+            background: linear-gradient(145deg, #9b59b6, #8e44ad);
+            border: 3px solid #663399;
+            box-shadow: 0 0 15px rgba(155, 89, 182, 0.6);
+            animation: speedBoostGlow 1s ease-in-out infinite alternate;
+        }
+
+        /* Speed boost active effect - changes tile appearance */
+        .piano-tile.speed-boost-active {
+            background: linear-gradient(145deg, #e74c3c, #c0392b) !important;
+            border: 3px solid #a93226 !important;
+            box-shadow: 0 0 20px rgba(231, 76, 60, 0.8) !important;
+            animation: speedBoostActivePulse 0.3s ease-in-out infinite alternate !important;
+        }
+
+        @keyframes speedBoostActivePulse {
+            0% { 
+                transform: scale(1);
+                box-shadow: 0 0 20px rgba(231, 76, 60, 0.8);
+            }
+            100% { 
+                transform: scale(1.02);
+                box-shadow: 0 0 25px rgba(231, 76, 60, 1);
+            }
+        }
+
+        @keyframes speedBoostGlow {
+            0% { box-shadow: 0 0 15px rgba(155, 89, 182, 0.6); }
+            100% { box-shadow: 0 0 25px rgba(155, 89, 182, 0.9); }
+        }
+
+        /* ===== ANIMACJE UTRATY ŻYCIA ===== */
+        .board-clear-effect {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle, rgba(231, 76, 60, 0.8) 0%, transparent 70%);
+            animation: clearFlash 1s ease-out;
+            pointer-events: none;
+            z-index: 50;
+        }        @keyframes clearFlash {
+            0% { opacity: 0; transform: scale(0); }
+            50% { opacity: 1; transform: scale(1.2); }
+            100% { opacity: 0; transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+    <!-- ===== KONTENER GŁÓWNY GRY ===== -->
+    <div class="game-container">
+        <!-- ===== MENU GŁÓWNE ===== -->
+        <div class="main-menu" id="mainMenu">
+            <h1 class="menu-title">⚡ Tile Storm</h1>
+            <button class="menu-button" onclick="startGame()">Rozpocznij Grę</button>
+            <button class="menu-button" onclick="showLeaderboard()">Najlepsze Wyniki</button>
+            <button class="menu-button" onclick="showSettings()">Ustawienia Dźwięku</button>
+            <button class="menu-button" onclick="showInstructions()">Instrukcje</button>
+
+        </div>
+
+        <!-- ===== PLANSZA GRY ===== -->
+        <div class="game-board" id="gameBoard">
+            <div class="game-lane" data-lane="0"></div>
+            <div class="game-lane" data-lane="1"></div>
+            <div class="game-lane" data-lane="2"></div>
+            <div class="game-lane" data-lane="3"></div>
+        </div>        <!-- ===== INTERFEJS GRY ===== -->
+        <div class="game-ui" id="gameUI">
+            <div class="score-display">
+                <div class="score-line">
+                    <span>Wynik: <span id="scoreValue">0</span></span>
+                    <span class="lives-container">
+                        <span class="life-icon" id="life1">💖</span>
+                        <span class="life-icon" id="life2">💖</span>
+                        <span class="life-icon" id="life3">💖</span>
+                    </span>
+                </div>
+                <div class="speed-indicator">Prędkość: <span id="speedValue">1</span>x</div>
+            </div>
+        </div>
+
+        <!-- ===== EKRAN GAME OVER ===== -->
+        <div class="game-over" id="gameOver">
+            <h2>Koniec Gry!</h2>
+            <div class="final-score">Twój wynik: <span id="finalScore">0</span></div>
+            <div>Najlepszy wynik: <span id="bestScore">0</span></div>
+            <button class="menu-button" onclick="restartGame()">Zagraj Ponownie</button>
+            <button class="menu-button" onclick="backToMenu()">Menu Główne</button>
+        </div>
+
+        <!-- ===== PANEL USTAWIEŃ ===== -->
+        <div class="settings-panel" id="settingsPanel">
+            <h2>Ustawienia Dźwięku</h2>
+            <div>
+                <label>Głośność efektów: <span id="volumeValue">50</span>%</label>
+                <input type="range" class="volume-slider" id="volumeSlider" min="0" max="100" value="50">
+            </div>
+            <div>
+                <label>Głośność muzyki: <span id="musicVolumeValue">10</span>%</label>
+                <input type="range" class="volume-slider" id="musicVolumeSlider" min="0" max="100" value="10">
+            </div>
+            <div>
+                <button class="sound-toggle" id="soundToggle" onclick="toggleSound()">Dźwięk: Włączony</button>
+            </div>
+            <button class="menu-button" onclick="backToMenu()">Powrót</button>
+        </div>
+
+        <!-- ===== TABELA WYNIKÓW ===== -->
+        <div class="leaderboard" id="leaderboard">
+            <h2 class="leaderboard-title">🏆 Najlepsze Wyniki</h2>
+            <div id="leaderboardList">
+                <!-- Wyniki będą dodawane dynamicznie -->
+            </div>
+            <button class="menu-button" onclick="clearLeaderboard()">Wyczyść Wyniki</button>
+            <button class="menu-button" onclick="backToMenu()">Powrót</button>
+        </div>
+
+        <!-- ===== OKNO WPROWADZANIA NAZWY ===== -->
+        <div class="name-input-modal" id="nameInputModal">
+            <h3>🏆 Nowy wynik!</h3>
+            <p>Podaj swoją nazwę:</p>
+            <input type="text" class="name-input-field" id="playerName" placeholder="Twoja nazwa..." maxlength="20" onkeypress="if(event.key==='Enter') savePlayerScore()">
+            <div class="name-buttons">
+                <button class="name-button confirm" onclick="savePlayerScore()">Zapisz</button>
+                <button class="name-button skip" onclick="skipNameInput()">Pomiń</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>        // ===== ZMIENNE GLOBALNE =====
+        let gameState = {
+            isPlaying: false, 
+            isPaused: false,
+            score: 0,
+            speed: 1,
+            combo: 0,
+            lives: 3,
+            tiles: [],
+            lastTileTime: 0,
+            tileInterval: 600,
+            gameStartTime: 0, 
+            soundEnabled: true, 
+            volume: 0.5, 
+            musicVolume: 0.1, 
+            currentSection: null,
+            backgroundMusic: null,
+            gameOverMusic: null,
+            speedBoostActive: false,
+            speedBoostEnd: 0,
+            rowsWithLostLives: new Set(), 
+            lastBombTime: 0 //
+        };
+
+        // ===== ELEMENTY DOM =====
+        const elements = {
+            mainMenu: document.getElementById('mainMenu'),
+            gameBoard: document.getElementById('gameBoard'),
+            gameUI: document.getElementById('gameUI'),
+            gameOver: document.getElementById('gameOver'),
+            settingsPanel: document.getElementById('settingsPanel'),
+            leaderboard: document.getElementById('leaderboard'),
+            scoreValue: document.getElementById('scoreValue'),
+            speedValue: document.getElementById('speedValue'),
+            finalScore: document.getElementById('finalScore'),
+            bestScore: document.getElementById('bestScore'),
+            volumeSlider: document.getElementById('volumeSlider'),
+            volumeValue: document.getElementById('volumeValue'),
+            soundToggle: document.getElementById('soundToggle'),
+            leaderboardList: document.getElementById('leaderboardList'),
+            playerNameInput: document.getElementById('playerName'),
+            nameInputModal: document.getElementById('nameInputModal')
+        };
+
+        // ===== KLASA GENERATORA DŹWIĘKÓW =====
+        class AudioGenerator {
+            constructor() {
+                this.audioContext = null;
+                this.backgroundMusicSource = null;
+                this.gameOverMusicSource = null;
+                this.initAudioContext();
+            }
+
+            // Inicjalizacja kontekstu audio
+            initAudioContext() {
+                try {
+                    this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                } catch (error) {
+                    console.warn('Audio Context nie jest wspierany:', error);
+                }
+            }
+
+            // Generowanie prostej melodii tła
+            createBackgroundMusic() {
+                if (!this.audioContext || !gameState.soundEnabled) return;
+
+                // Zatrzymanie poprzedniej muzyki
+                if (this.backgroundMusicSource) {
+                    this.backgroundMusicSource.stop();
+                }
+
+                const gainNode = this.audioContext.createGain();
+                gainNode.gain.setValueAtTime(gameState.musicVolume || 0.1, this.audioContext.currentTime);
+                gainNode.connect(this.audioContext.destination);
+
+                // Prosta melodia w pętli
+                const melody = [523.25, 587.33, 659.25, 698.46]; // C5, D5, E5, F5
+                let noteIndex = 0;
+                const playNote = () => {
+                    if (!gameState.isPlaying) return;
+
+                    const oscillator = this.audioContext.createOscillator();
+                    const noteGain = this.audioContext.createGain();
+                    
+                    oscillator.frequency.setValueAtTime(melody[noteIndex], this.audioContext.currentTime);
+                    oscillator.type = 'sine';
+                    
+                    noteGain.gain.setValueAtTime(0, this.audioContext.currentTime);
+                    noteGain.gain.linearRampToValueAtTime(0.05, this.audioContext.currentTime + 0.1);
+                    noteGain.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.8);
+                    
+                    oscillator.connect(noteGain);
+                    noteGain.connect(gainNode);
+                    
+                    oscillator.start(this.audioContext.currentTime);
+                    oscillator.stop(this.audioContext.currentTime + 1);
+                    
+                    noteIndex = (noteIndex + 1) % melody.length;
+                    
+                    setTimeout(playNote, 1000);
+                };
+                
+                playNote();
+            }
+
+            // Muzyka game over
+            createGameOverMusic() {
+                if (!this.audioContext || !gameState.soundEnabled) return;
+
+                const gainNode = this.audioContext.createGain();
+                gainNode.gain.setValueAtTime(gameState.musicVolume || 0.1, this.audioContext.currentTime);
+                gainNode.connect(this.audioContext.destination);
+
+                // Smutna melodia
+                const sadMelody = [440, 415.30, 392, 369.99]; // A4, G#4, G4, F#4
+                
+                sadMelody.forEach((freq, index) => {
+                    const oscillator = this.audioContext.createOscillator();
+                    const noteGain = this.audioContext.createGain();
+                    
+                    oscillator.frequency.setValueAtTime(freq, this.audioContext.currentTime);
+                    oscillator.type = 'triangle';
+                    
+                    const startTime = this.audioContext.currentTime + index * 0.5;
+                    noteGain.gain.setValueAtTime(0, startTime);
+                    noteGain.gain.linearRampToValueAtTime(0.1, startTime + 0.1);
+                    noteGain.gain.exponentialRampToValueAtTime(0.01, startTime + 1);
+                    
+                    oscillator.connect(noteGain);
+                    noteGain.connect(gainNode);
+                    
+                    oscillator.start(startTime);
+                    oscillator.stop(startTime + 1);
+                });
+            }
+
+            // Zatrzymanie muzyki
+            stopBackgroundMusic() {
+                if (this.backgroundMusicSource) {
+                    this.backgroundMusicSource.stop();
+                    this.backgroundMusicSource = null;
+                }
+            }
+
+            // Dodaj muzykę menu
+            createMenuMusic() {
+                if (!this.audioContext || !gameState.soundEnabled) return;
+
+                // Zatrzymanie poprzedniej muzyki menu
+                if (this.menuMusicInterval) {
+                    clearInterval(this.menuMusicInterval);
+                }
+
+                // Spokojna melodia menu
+                const menuMelody = [523.25, 587.33, 659.25, 698.46, 659.25, 587.33]; // C5, D5, E5, F5, E5, D5
+                let noteIndex = 0;
+                
+                const playMenuNote = () => {
+                    if (gameState.isPlaying) {
+                        if (this.menuMusicInterval) {
+                            clearInterval(this.menuMusicInterval);
+                            this.menuMusicInterval = null;
+                        }
+                        return;
+                    }
+                    
+                    const oscillator = this.audioContext.createOscillator();
+                    const gainNode = this.audioContext.createGain();
+                    
+                    oscillator.frequency.setValueAtTime(menuMelody[noteIndex], this.audioContext.currentTime);
+                    oscillator.type = 'sine';
+                    
+                    gainNode.gain.setValueAtTime(0, this.audioContext.currentTime);
+                    gainNode.gain.linearRampToValueAtTime((gameState.musicVolume || 0.1) * 0.3, this.audioContext.currentTime + 0.1);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 1.5);
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(this.audioContext.destination);
+                    
+                    oscillator.start(this.audioContext.currentTime);
+                    oscillator.stop(this.audioContext.currentTime + 1.5);
+                    
+                    noteIndex = (noteIndex + 1) % menuMelody.length;
+                };
+                
+                // Uruchomienie interwału
+                this.menuMusicInterval = setInterval(playMenuNote, 1500);
+            }
+
+            // Zatrzymanie muzyki menu
+            stopMenuMusic() {
+                if (this.menuMusicInterval) {
+                    clearInterval(this.menuMusicInterval);
+                    this.menuMusicInterval = null;
+                }
+            }
+
+            // Zatrzymanie wszystkich typów muzyki
+            stopAllMusic() {
+                this.stopBackgroundMusic();
+                this.stopSpeedBoostMusic();
+                this.stopMenuMusic();
+            }
+
+            // Reszta metod pozostaje bez zmian...
+            playPianoNote(frequency = 440, duration = 0.3) {
+                if (!this.audioContext || !gameState.soundEnabled) return;
+
+                const oscillator = this.audioContext.createOscillator();
+                const gainNode = this.audioContext.createGain();
+
+                oscillator.type = 'triangle';
+                oscillator.frequency.setValueAtTime(frequency, this.audioContext.currentTime);
+
+                gainNode.gain.setValueAtTime(0, this.audioContext.currentTime);
+                gainNode.gain.linearRampToValueAtTime(gameState.volume, this.audioContext.currentTime + 0.01);
+                gainNode.gain.exponentialRampToValueAtTime(gameState.volume * 0.3, this.audioContext.currentTime + 0.1);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + duration);
+
+                oscillator.connect(gainNode);
+                gainNode.connect(this.audioContext.destination);
+
+                oscillator.start(this.audioContext.currentTime);
+                oscillator.stop(this.audioContext.currentTime + duration);
+            }
+
+            playErrorSound() {
+                if (!this.audioContext || !gameState.soundEnabled) return;
+
+                const oscillator = this.audioContext.createOscillator();
+                const gainNode = this.audioContext.createGain();
+
+                oscillator.type = 'sawtooth';
+                oscillator.frequency.setValueAtTime(200, this.audioContext.currentTime);
+                oscillator.frequency.linearRampToValueAtTime(100, this.audioContext.currentTime + 0.5);
+
+                gainNode.gain.setValueAtTime(gameState.volume * 0.5, this.audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.5);
+
+                oscillator.connect(gainNode);
+                gainNode.connect(this.audioContext.destination);
+
+                oscillator.start(this.audioContext.currentTime);
+                oscillator.stop(this.audioContext.currentTime + 0.5);
+            }
+
+            playComboSound(comboCount) {
+                if (!this.audioContext || !gameState.soundEnabled) return;
+
+                const baseFreq = 523.25;
+                const frequency = baseFreq * (1 + comboCount * 0.1);
+                this.playPianoNote(frequency, 0.2);
+            }
+
+            // Dźwięk eksplozji bomby
+                playExplosionSound() {
+                    if (!this.audioContext || !gameState.soundEnabled) return;
+
+                    // Głęboki, dramatyczny dźwięk eksplozji
+                    const oscillator1 = this.audioContext.createOscillator();
+                    const oscillator2 = this.audioContext.createOscillator();
+                    const gainNode = this.audioContext.createGain();
+                    
+                    oscillator1.type = 'sawtooth';
+                    oscillator1.frequency.setValueAtTime(60, this.audioContext.currentTime);
+                    oscillator1.frequency.exponentialRampToValueAtTime(30, this.audioContext.currentTime + 0.3);
+                    
+                    oscillator2.type = 'square';
+                    oscillator2.frequency.setValueAtTime(120, this.audioContext.currentTime);
+                    oscillator2.frequency.exponentialRampToValueAtTime(60, this.audioContext.currentTime + 0.3);
+                    
+                    gainNode.gain.setValueAtTime(gameState.volume * 0.1, this.audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.8);
+                    
+                    oscillator1.connect(gainNode);
+                    oscillator2.connect(gainNode);
+                    gainNode.connect(this.audioContext.destination);
+                    
+                    oscillator1.start(this.audioContext.currentTime);
+                    oscillator2.start(this.audioContext.currentTime);
+                    oscillator1.stop(this.audioContext.currentTime + 0.8);
+                    oscillator2.stop(this.audioContext.currentTime + 0.8);
+                }
+
+            playSpeedBoostMusic() {
+            if (!this.audioContext || !gameState.soundEnabled) return;
+
+            // Zatrzymanie poprzedniej muzyki boost
+            if (this.speedBoostMusicInterval) {
+                clearInterval(this.speedBoostMusicInterval);
+            }
+
+            // Energiczna melodia
+            const boostMelody = [659.25, 783.99, 880, 1046.5]; // E5, G5, A5, C6
+            let noteIndex = 0;
+            
+                const playBoostNote = () => {
+                    if (!gameState.speedBoostActive || !gameState.isPlaying) {
+                        if (this.speedBoostMusicInterval) {
+                            clearInterval(this.speedBoostMusicInterval);
+                            this.speedBoostMusicInterval = null;
+                        }
+                        return;
+                    }
+                    
+                    const oscillator = this.audioContext.createOscillator();
+                    const gainNode = this.audioContext.createGain();
+                    
+                    oscillator.frequency.setValueAtTime(boostMelody[noteIndex], this.audioContext.currentTime);
+                    oscillator.type = 'square';
+                    
+                    gainNode.gain.setValueAtTime(0, this.audioContext.currentTime);
+                    gainNode.gain.linearRampToValueAtTime(gameState.musicVolume || 0.1, this.audioContext.currentTime + 0.05);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.3);
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(this.audioContext.destination);
+                    
+                    oscillator.start(this.audioContext.currentTime);
+                    oscillator.stop(this.audioContext.currentTime + 0.3);
+                    
+                    noteIndex = (noteIndex + 1) % boostMelody.length;
+                };
+        
+                // Uruchomienie interwału
+                this.speedBoostMusicInterval = setInterval(playBoostNote, 300);
+            }
+
+            // Dodaj metodę zatrzymania muzyki boost
+            stopSpeedBoostMusic() {
+                if (this.speedBoostMusicInterval) {
+                    clearInterval(this.speedBoostMusicInterval);
+                    this.speedBoostMusicInterval = null;
+                }
+            }
+            
+        }
+
+        // Inicjalizacja generatora audio
+        const audioGen = new AudioGenerator();
+
+
+        // Funkcje obsługi muzyki
+        let backgroundMusicBuffer = null;
+        let gameOverMusicBuffer = null;
+
+        // Obsługa suwaka głośności muzyki
+        window.addEventListener('load', () => {
+            const musicVolumeSlider = document.getElementById('musicVolumeSlider');
+            if (musicVolumeSlider) {
+                musicVolumeSlider.addEventListener('input', (e) => {
+                    gameState.musicVolume = e.target.value / 100;
+                    const musicVolumeValue = document.getElementById('musicVolumeValue');
+                    if (musicVolumeValue) {
+                        musicVolumeValue.textContent = e.target.value;
+                    }
+                    localStorage.setItem('tileStormMusicVolume', gameState.musicVolume);
+                });
+            }
+        });        // ===== KLASA KAFELKA PIANO =====
+        class PianoTile {
+            constructor(lane, startY = -150, type = 'normal') {
+                this.lane = lane;
+                this.y = startY;
+                this.height = 150;
+                this.width = 100;
+                this.element = null;
+                this.isClicked = false;
+                this.isActive = false;
+                this.type = type;
+                this.hitsRequired = type === 'multi-hit' ? Math.floor(Math.random() * 2) + 2 : 1; // 2-3 uderzenia
+                this.currentHits = 0;
+                this.rowId = Math.floor(startY / 120); // Identyfikator rzędu
+                this.lifeLostForRow = false; // Czy życie zostało już stracone za ten rząd
+                this.createTileElement();
+            }            
+            createTileElement() {
+                this.element = document.createElement('div');
+                this.element.className = `piano-tile ${this.type}`;
+                this.element.style.left = '0';
+                this.element.style.top = this.y + 'px';
+                this.element.style.zIndex = '10';
+                
+                if (this.type === 'multi-hit') {
+                    this.element.setAttribute('data-hits', this.hitsRequired);
+                }
+                
+                // Zmienna do śledzenia czy kliknięcie zostało rozpoczęte na tym kafelku
+                let mouseDownOnThis = false;
+                
+                this.element.addEventListener('mousedown', (e) => {
+                    e.stopPropagation();
+                    mouseDownOnThis = true;
+                });
+                
+                this.element.addEventListener('mouseup', (e) => {
+                    e.stopPropagation();
+                    if (mouseDownOnThis) {
+                        this.handleClick();
+                    }
+                    mouseDownOnThis = false;
+                });
+                  // Jeśli mysz opuści kafelek podczas trzymania, anuluj kliknięcie
+                this.element.addEventListener('mouseleave', (e) => {
+                    if (mouseDownOnThis) {
+                        mouseDownOnThis = false;
+                        // Tylko jeśli rzeczywiście przeciągniesz z dobrego kafelka - nie karać za to
+                        console.log('Mysz opuściła kafelek podczas trzymania - anulowano kliknięcie (bez kary)');
+                    }
+                });
+
+                const lanes = document.querySelectorAll('.game-lane');
+                if (lanes[this.lane]) {
+                    lanes[this.lane].appendChild(this.element);
+                }
+            }            
+            handleClick() {
+                if (this.isClicked || !gameState.isPlaying) return;
+
+                // BOMB TILE - można kliknąć tylko podczas speed boost
+                if (this.type === 'bomb') {
+                    if (gameState.speedBoostActive && performance.now() < gameState.speedBoostEnd) {
+                        // Podczas speed boost - bezpieczne kliknięcie bomby
+                        this.isClicked = true;
+                        this.element.classList.add('clicked');
+                        
+                        gameState.score += 5; // Bonus za odważne kliknięcie bomby
+                        gameState.combo++;
+                        
+                        audioGen.playPianoNote(200, 0.3); // Głęboki dźwięk
+                        updateScore();
+                        createParticleEffect(this.lane, '#e74c3c');
+                        
+                        setTimeout(() => this.remove(), 100);
+                        return;
+                    } else {
+                        // Bez speed boost - tracisz życie za dotknięcie bomby
+                        console.log('Dotknięto bombę bez speed boost - tracisz życie!');
+                        this.loseLife();
+                        return;
+                    }
+                }
+
+                // HEAL TILE - zawsze bezpieczne
+                if (this.type === 'heal') {
+                    this.isClicked = true;
+                    this.element.classList.add('clicked');
+                    
+                    if (gameState.lives < 3) {
+                        // Leczenie
+                        gameState.lives++;
+                        gameState.score += 3;
+                        console.log('Życie przywrócone! Aktualne życia:', gameState.lives);
+                    } else {
+                        // Pełne życie - podwójne punkty
+                        gameState.score += 6;
+                        console.log('Pełne życie - podwójne punkty!');
+                    }
+                    
+                    gameState.combo++;
+                    updateLivesDisplay(); // Aktualizuj wyświetlanie życia
+                    updateScore();
+                    
+                    // Efekt leczenia
+                    this.showHealEffect();
+                    
+                    audioGen.playPianoNote(523.25, 0.4); // Wysoki, przyjemny dźwięk
+                    createParticleEffect(this.lane, '#27ae60');
+                    
+                    setTimeout(() => this.remove(), 100);
+                    return;
+                }
+
+                // Speed boost jest opcjonalny - nie trzeba go klikać
+                if (this.type === 'speed-boost') {
+                    // Aktywuj speed boost ale nie tracisz życia jeśli go nie klikniesz
+                    this.isClicked = true;
+                    this.element.classList.add('clicked');
+                    this.activateSpeedBoost();
+                    
+                    gameState.score += 3;
+                    gameState.combo++;
+                    
+                    audioGen.playPianoNote(261.63);
+                    updateScore();
+                    createParticleEffect(this.lane, '#9b59b6');
+                    
+                    setTimeout(() => this.remove(), 100);
+                    return;
+                }
+
+                // Dla normalnych i multi-hit klocków - sprawdź kolejność BARDZO restrykcyjnie
+                const tilesInLane = gameState.tiles.filter(tile => 
+                    tile.lane === this.lane && !tile.isClicked && 
+                    tile.type !== 'speed-boost' && tile.type !== 'bomb' && tile.type !== 'heal'
+                );
+                
+                // Posortuj według pozycji Y (najniższy pierwszy = największe Y)
+                tilesInLane.sort((a, b) => b.y - a.y);
+                
+                // MUSI być najniższy kafelek w ścieżce, inaczej utrata życia
+                if (tilesInLane.length > 0 && tilesInLane[0] !== this) {
+                    console.log(`BŁĄD KOLEJNOŚCI: Kliknięto kafelek na pozycji Y=${this.y}, ale najniższy ma Y=${tilesInLane[0].y} w ścieżce ${this.lane}`);
+                    this.loseLife();
+                    return;
+                }
+
+                this.currentHits++;
+
+                if (this.type === 'multi-hit' && this.currentHits < this.hitsRequired) {
+                    this.element.setAttribute('data-hits', this.hitsRequired - this.currentHits);
+                    audioGen.playPianoNote(329.63, 0.2);
+                    createParticleEffect(this.lane, '#f39c12');
+                    return;
+                }
+
+                this.isClicked = true;
+                this.element.classList.add('clicked');
+
+                // Różne punkty za różne typy klocków
+                let points = 1;
+                if (this.type === 'multi-hit') {
+                    points = this.hitsRequired; // 2 lub 3 punkty za multi-hit
+                    // Zawsze cofnij przyspieszenie gdy multi-hit zostanie zniszczony
+                    const oldSpeed = gameState.speed;
+                    const oldInterval = gameState.tileInterval;
+                    gameState.speed = Math.max(1, gameState.speed - 0.15);
+                    gameState.tileInterval = Math.min(1000, gameState.tileInterval + 30);
+                    console.log(`Multi-hit destroyed: Speed ${oldSpeed.toFixed(2)} -> ${gameState.speed.toFixed(2)}, Interval ${oldInterval} -> ${gameState.tileInterval}`);
+                }
+
+                // Bonus za combo
+                const comboMultiplier = Math.floor(gameState.combo / 10) + 1;
+                points *= comboMultiplier;
+
+                // Bonus podczas speed boost
+                if (gameState.speedBoostActive && performance.now() < gameState.speedBoostEnd) {
+                    points *= 2; // Podwójne punkty podczas boost
+                }
+
+                gameState.score += points;
+                gameState.combo++;
+                
+                const frequencies = [261.63, 293.66, 329.63, 349.23];
+                audioGen.playPianoNote(frequencies[this.lane]);
+                
+                updateScore();
+                
+                if (gameState.combo > 0 && gameState.combo % 10 === 0) {
+                    showComboEffect();
+                    audioGen.playComboSound(gameState.combo / 10);
+                }
+                
+                if (gameState.score % 10 === 0) {
+                    increaseSpeed();
+                }
+                
+                createParticleEffect(this.lane, '#27ae60');
+                
+                setTimeout(() => {
+                    this.remove();
+                }, 100);
+            }
+            activateSpeedBoost() {
+                gameState.speedBoostActive = true;
+                gameState.speedBoostEnd = performance.now() + 5000; // 5 sekund
+                
+                console.log('Speed Boost aktywowany!');
+                
+                // Dodaj efekt wizualny do wszystkich kafelków
+                gameState.tiles.forEach(tile => {
+                    if (!tile.isClicked) {
+                        tile.element.classList.add('speed-boost-active');
+                    }
+                });
+
+                // Odtwórz specjalną muzykę
+                audioGen.playSpeedBoostMusic();
+            }            loseLife() {
+                // Dodatkowa ochrona przed wielokrotną utratą życia
+                if (this.lifeLostForRow || gameState.lives <= 0) {
+                    console.log('Unikam wielokrotnej utraty życia');
+                    return;
+                }
+                
+                this.lifeLostForRow = true;
+                gameState.lives--;
+                gameState.combo = 0; // Reset combo
+                
+                console.log(`Tracę życie! Pozostało: ${gameState.lives}`);
+                
+                updateLivesDisplay(true); // Przekaż true dla animacji
+                audioGen.playErrorSound();
+                
+                // Oznacz wszystkie kafelki z tego samego rzędu jako straconego życia
+                const currentRowY = this.y;
+                gameState.tiles.forEach(tile => {
+                    if (Math.abs(tile.y - currentRowY) < 100 && !tile.isClicked) {
+                        tile.element.classList.add('missed');
+                        tile.lifeLostForRow = true; // Oznacz wszystkie kafelki w rzędzie
+                    }
+                });
+                
+                // Animacja utraty życia
+                const clearEffect = document.createElement('div');
+                clearEffect.className = 'board-clear-effect';
+                elements.gameBoard.appendChild(clearEffect);
+
+                setTimeout(() => {
+                    clearEffect.remove();
+                }, 1000);
+
+                // Wyczyszczenie planszy
+                clearAllTiles();
+
+                // Zwolnienie gry
+                if (gameState.speed > 1) {
+                    gameState.speed = Math.max(1, gameState.speed - 0.3);
+                    gameState.tileInterval = Math.min(1000, gameState.tileInterval + 100);
+                }
+
+                if (gameState.lives <= 0) {
+                    endGame();
+                }
+            }
+            
+            update(deltaTime) {
+                if (this.isClicked) return;
+                
+                // Sprawdź czy element istnieje
+                if (!this.element || !this.element.parentNode) {
+                    console.warn('Kafelek bez elementu DOM, usuwam z gry');
+                    return;
+                }
+                
+                let currentSpeed = gameState.speed;
+                if (gameState.speedBoostActive && performance.now() < gameState.speedBoostEnd) {
+                    currentSpeed *= 1.3;
+                } else if (gameState.speedBoostActive) {
+                    gameState.speedBoostActive = false;
+                    // Usuń efekt wizualny z wszystkich kafelków
+                    gameState.tiles.forEach(tile => {
+                        if (tile.element) {
+                            tile.element.classList.remove('speed-boost-active');
+                        }
+                    });
+                }
+                
+                this.y += currentSpeed * deltaTime * 0.3;
+                this.element.style.top = this.y + 'px';
+                
+                // Dodaj efekt wizualny podczas speed boost
+                if (gameState.speedBoostActive && performance.now() < gameState.speedBoostEnd) {
+                    this.element.classList.add('speed-boost-active');
+                } else {
+                    this.element.classList.remove('speed-boost-active');
+                }
+                
+                // Sprawdź czy kafelek nie jest zbyt wysoko (możliwy bug)
+                if (this.y < -350) {
+                    console.warn('Kafelek zbyt wysoko, Y=', this.y, 'type=', this.type);
+                    this.remove();
+                    return;
+                }
+                
+                if (this.y > 600) {
+                    // BOMB TILE - eksploduje gdy dotknie dna
+                    if (this.type === 'bomb') {
+                        this.explode();
+                        return;
+                    }
+                    
+                    // HEAL TILE - po prostu znika bez kary
+                    if (this.type === 'heal') {
+                        console.log('Heal tile zniknął - brak kary');
+                        this.remove();
+                        return;
+                    }
+                    
+                    // Speed boost klocki nie powodują utraty życia - po prostu znikają
+                    if (this.type === 'speed-boost') {
+                        console.log('Speed boost klocek zniknął - brak kary');
+                        this.remove();
+                        return;
+                    }
+                    
+                    // Sprawdź czy życie już zostało stracone za ten rząd
+                    if (!gameState.rowsWithLostLives.has(this.rowId)) {
+                        gameState.rowsWithLostLives.add(this.rowId);
+                        this.loseLife();
+                    }
+                    return;
+                }
+                
+                if (!this.isActive && this.y + this.height > 450) {
+                    this.isActive = true;
+                    this.element.classList.add('active');
+                }
+            }
+
+            remove() {
+                if (this.element && this.element.parentNode) {
+                    this.element.parentNode.removeChild(this.element);
+                }
+            }
+
+            // Efekt eksplozji bomby
+            explode() {
+                console.log('BOMBA EKSPLODUJE!');
+                
+                // Ustaw cooldown bomb na 10 sekund
+                gameState.lastBombTime = performance.now();
+                
+                // Efekt wizualny eksplozji
+                const explosionEffect = document.createElement('div');
+                explosionEffect.className = 'bomb-explosion';
+                elements.gameBoard.appendChild(explosionEffect);
+                
+                // Dźwięk eksplozji
+                audioGen.playExplosionSound();
+                
+                // Znajdź wszystkie kafelki na planszy
+                const tilesToDestroy = gameState.tiles.filter(tile => !tile.isClicked && tile.type !== 'bomb');
+                let pointsGained = 0;
+                
+                // Zniszcz wszystkie kafelki i policz punkty
+                tilesToDestroy.forEach(tile => {
+                    tile.isClicked = true;
+                    tile.element.classList.add('clicked');
+                    
+                    // Punkty za zniszczony kafelek
+                    let tilePoints = 1;
+                    if (tile.type === 'multi-hit') {
+                        tilePoints = tile.hitsRequired;
+                    } else if (tile.type === 'speed-boost') {
+                        tilePoints = 3;
+                    } else if (tile.type === 'heal') {
+                        tilePoints = 3;
+                    }
+                    
+                    pointsGained += tilePoints;
+                    
+                    // Efekt cząsteczkowy dla każdego zniszczonego kafelka
+                    createParticleEffect(tile.lane, '#ff6b35');
+                    
+                    setTimeout(() => tile.remove(), 100 + Math.random() * 200);
+                });
+                
+                // Dodaj punkty
+                gameState.score += pointsGained;
+                updateScore();
+                
+                // Wyświetl efekt punktów
+                if (pointsGained > 0) {
+                    this.showExplosionPoints(pointsGained);
+                }
+                
+                // Usuń efekt eksplozji
+                setTimeout(() => {
+                    explosionEffect.remove();
+                }, 1000);
+                
+                // Usuń bombę
+                this.remove();
+            }
+
+            // Wyświetlenie punktów za eksplozję
+            showExplosionPoints(points) {
+                const pointsElement = document.createElement('div');
+                pointsElement.className = 'combo-text';
+                pointsElement.style.color = '#e74c3c';
+                pointsElement.style.fontSize = '2em';
+                pointsElement.textContent = `BOMBA! +${points} pkt`;
+                
+                pointsElement.style.left = '50%';
+                pointsElement.style.top = '200px';
+                pointsElement.style.transform = 'translateX(-50%)';
+                
+                elements.gameBoard.appendChild(pointsElement);
+                
+                setTimeout(() => {
+                    if (pointsElement.parentNode) {
+                        pointsElement.parentNode.removeChild(pointsElement);
+                    }
+                }, 2000);
+            }
+
+            // Efekt leczenia
+            showHealEffect() {
+                const healEffect = document.createElement('div');
+                healEffect.className = 'heal-effect';
+                elements.gameBoard.appendChild(healEffect);
+                
+                setTimeout(() => {
+                    healEffect.remove();
+                }, 800);
+            }
+
+        }
+
+        // ===== SYSTEM ZARZĄDZANIA GRĄ =====
+        
+        // Pętla główna gry
+        let gameLoop;
+        let lastTime = 0;
+
+        function gameUpdate(currentTime) {
+            if (!gameState.isPlaying) return;
+
+            const deltaTime = currentTime - lastTime;
+            lastTime = currentTime;
+
+            // Aktualizacja wszystkich kafelków
+            gameState.tiles.forEach((tile, index) => {
+                tile.update(deltaTime);
+                
+                // Usunięcie klikniętyh kafelków z tablicy
+                if (tile.isClicked) {
+                    gameState.tiles.splice(index, 1);
+                }
+            });            // Generowanie nowych kafelków
+            if (currentTime - gameState.lastTileTime > gameState.tileInterval) {
+                generateNewTile();
+                gameState.lastTileTime = currentTime;
+            }
+
+            // Usuń kafelki które spadły zbyt nisko
+            gameState.tiles = gameState.tiles.filter(tile => {
+                // Usuń kafelki które spadły za nisko
+                if (tile.y > 800 && !tile.isClicked) {
+                    console.log('Usuwam kafelek który spadł za nisko:', tile.y);
+                    tile.remove();
+                    return false;
+                }
+                
+                // Usuń kafelki które są zbyt wysoko i mogą się zacinać
+                if (tile.y < -300 && !tile.isClicked) {
+                    console.log('Usuwam kafelek który jest zbyt wysoko:', tile.y);
+                    tile.remove();
+                    return false;
+                }
+                
+                // Usuń kafelki bez elementu DOM (zabezpieczenie)
+                if (!tile.element || !tile.element.parentNode) {
+                    console.log('Usuwam kafelek bez elementu DOM');
+                    return false;
+                }
+                
+                return true;
+            });
+
+            // Kontynuacja pętli
+            gameLoop = requestAnimationFrame(gameUpdate);
+        }        // Wyświetlenie żyć
+        function updateLivesDisplay(lostLife = false) {
+            const life1 = document.getElementById('life1');
+            const life2 = document.getElementById('life2');
+            const life3 = document.getElementById('life3');
+            const lifeIcons = [life1, life2, life3];
+            
+            // Resetuj wszystkie animacje
+            lifeIcons.forEach(icon => {
+                icon.classList.remove('lost', 'critical');
+            });
+            
+            // Ustaw stan życia
+            for (let i = 0; i < 3; i++) {
+                if (i < gameState.lives) {
+                    lifeIcons[i].textContent = '💖';
+                    lifeIcons[i].classList.remove('lost');
+                } else {
+                    lifeIcons[i].textContent = '💔';
+                    lifeIcons[i].classList.add('lost');
+                }
+            }
+            
+            // Dodaj animację critical gdy zostało 1 życie
+            if (gameState.lives <= 1 && gameState.lives > 0) {
+                lifeIcons[0].classList.add('critical');
+            }
+            
+            // Animacja utraty życia
+            if (lostLife && gameState.lives >= 0 && gameState.lives < 3) {
+                const lostIcon = lifeIcons[gameState.lives];
+                if (lostIcon) {
+                    // Animacja pękania serca
+                    lostIcon.style.animation = 'heartbeat 0.6s ease-out';
+                    setTimeout(() => {
+                        lostIcon.style.animation = '';
+                    }, 600);
+                }
+            }
+        }        
+
+        // Wyczyszczenie wszystkich klocków z planszy
+        function clearAllTiles() {
+            console.log('Czyszczę wszystkie kafelki, count:', gameState.tiles.length);
+            
+            // Dodaj efekt animacji znikania dla wszystkich kafelków
+            gameState.tiles.forEach((tile, index) => {
+                if (tile.element && tile.element.parentNode) {
+                    // Animacja znikania z opóźnieniem
+                    setTimeout(() => {
+                        if (tile.element && tile.element.parentNode) {
+                            tile.element.style.transition = 'all 0.3s ease-out';
+                            tile.element.style.transform = 'scale(0.8) rotate(180deg)';
+                            tile.element.style.opacity = '0';
+                            
+                            // Usuń po animacji
+                            setTimeout(() => {
+                                tile.remove();
+                            }, 300);
+                        }
+                    }, index * 50); // 50ms opóźnienia między kafelkami
+                } else {
+                    tile.remove();
+                }
+            });
+            
+            // Wyczyszczenie tablicy po animacji
+            setTimeout(() => {
+                gameState.tiles = [];
+                
+                // Dodatkowe czyszczenie DOM - usuń wszystkie pozostałe kafelki
+                const lanes = document.querySelectorAll('.game-lane');
+                lanes.forEach(lane => {
+                    const remainingTiles = lane.querySelectorAll('.piano-tile');
+                    remainingTiles.forEach(tile => {
+                        console.log('Usuwam pozostały kafelek z DOM');
+                        tile.remove();
+                    });
+                });
+            }, gameState.tiles.length * 50 + 300);
+        }
+
+        // Funkcja sprawdzająca czy można umieścić kafelek
+        function canPlaceTile(lane, y) {
+            const minDistance = 180; // Minimalna odległość między kafelkami w tej samej ścieżce
+            
+            return !gameState.tiles.some(tile => 
+                tile.lane === lane && 
+                Math.abs(tile.y - y) < minDistance &&
+                !tile.isClicked
+            );
+        }
+
+            // Ulepszona funkcja generowania z kontrolą kolizji
+            function generateNewTileImproved() {
+                // Sprawdź ile aktywnych kafelków jest na planszy
+                const activeTiles = gameState.tiles.filter(tile => !tile.isClicked && tile.y > -500);
+                
+                // Jeśli za mało kafelków, generuj więcej
+                if (activeTiles.length < 6) {
+                    const attempts = 5; // Maksymalnie 5 prób umieszczenia kafelka
+                    
+                    for (let attempt = 0; attempt < attempts; attempt++) {
+                        const lane = Math.floor(Math.random() * 4);
+                        const baseY = -150 - (attempt * 100);
+                        
+                        if (canPlaceTile(lane, baseY)) {
+                            // Losowanie typu klocka
+                            let tileType = 'normal';
+                            const rand = Math.random();
+                            
+                            if (rand < 0.03 && gameState.score > 20) {
+                                tileType = 'speed-boost';
+                            } else if (rand < 0.15 && gameState.score > 10 && !gameState.speedBoostActive) {
+                                tileType = 'multi-hit';
+                            }
+                            
+                            const newTile = new PianoTile(lane, baseY, tileType);
+                            gameState.tiles.push(newTile);
+                            break;
+                        }
+                    }
+                }
+            }        // Generowanie nowego kafelka ze wzorami
+        function generateNewTile() {
+            if (!gameState.currentPattern || gameState.currentPattern.rowIndex >= gameState.currentPattern.pattern.length) {
+                // Wybór nowego wzoru
+                const patterns = [
+                    // Wzór 1: Pojedyncze kafelki po przekątnej
+                    [
+                        [1, 0, 0, 0],
+                        [0, 1, 0, 0],
+                        [0, 0, 1, 0],
+                        [0, 0, 0, 1]
+                    ],
+                    // Wzór 2: Szachownica
+                    [
+                        [0, 1, 1, 0],
+                        [1, 0, 0, 1],
+                        [0, 1, 1, 0],
+                        [1, 0, 0, 1]
+                    ],
+                    // Wzór 3: Alternujące pary
+                    [
+                        [1, 1, 0, 0],
+                        [0, 0, 1, 1],
+                        [1, 0, 1, 0],
+                        [0, 1, 0, 1]
+                    ],
+                    // Wzór 4: Centrum i rogi
+                    [
+                        [1, 0, 0, 1],
+                        [0, 1, 1, 0],
+                        [1, 0, 0, 1],
+                        [0, 1, 1, 0]
+                    ],
+                    // Wzór 5: Prosta fala
+                    [
+                        [1, 0, 0, 0],
+                        [0, 1, 0, 0],
+                        [0, 0, 1, 0],
+                        [0, 0, 0, 1],
+                        [0, 0, 1, 0],
+                        [0, 1, 0, 0]
+                    ],
+                    // Wzór 6: Bloki boczne
+                    [
+                        [1, 1, 0, 0],
+                        [1, 1, 0, 0],
+                        [0, 0, 1, 1],
+                        [0, 0, 1, 1]
+                    ],
+                    // Wzór 7: X pattern
+                    [
+                        [1, 0, 0, 1],
+                        [0, 1, 1, 0],
+                        [0, 1, 1, 0],
+                        [1, 0, 0, 1]
+                    ],
+                    // Wzór 8: Losowe pojedyncze
+                    [
+                        [1, 0, 0, 0],
+                        [0, 0, 1, 0],
+                        [0, 1, 0, 0],
+                        [0, 0, 0, 1],
+                        [0, 1, 0, 0],
+                        [1, 0, 0, 0]
+                    ],
+                    // Wzór 9: Podwójne środek
+                    [
+                        [0, 1, 1, 0],
+                        [0, 1, 1, 0],
+                        [1, 0, 0, 1],
+                        [1, 0, 0, 1]
+                    ],                    // Wzór 10: Spiral - Fixed to max 2 tiles
+                    [
+                        [1, 1, 0, 0],
+                        [0, 0, 1, 0],
+                        [0, 1, 1, 0],
+                        [0, 1, 0, 0],
+                        [1, 0, 0, 0]
+                    ],
+                    // Wzór 11: Double diagonal
+                    [
+                        [1, 0, 0, 1],
+                        [0, 1, 1, 0],
+                        [1, 0, 0, 1],
+                        [0, 1, 1, 0]
+                    ],                    // Wzór 12: Random clusters - Fixed to max 2 tiles
+                    [
+                        [1, 1, 0, 0],
+                        [0, 1, 0, 0],
+                        [1, 0, 1, 0],
+                        [0, 0, 1, 0]
+                    ],                    // Wzór 13: Fast singles
+                    [
+                        [1, 0, 0, 0],
+                        [0, 1, 0, 0],
+                        [0, 0, 1, 0],
+                        [0, 0, 0, 1]
+                    ],
+                    // Wzór 14: Singles only
+                    [
+                        [0, 1, 0, 0],
+                        [0, 0, 0, 1],
+                        [1, 0, 0, 0],
+                        [0, 0, 1, 0]
+                    ],
+                    // Wzór 15: Left-right singles
+                    [
+                        [1, 0, 0, 0],
+                        [0, 0, 0, 1],
+                        [1, 0, 0, 0],
+                        [0, 0, 0, 1]
+                    ],
+                    // Wzór 16: Center singles
+                    [
+                        [0, 1, 0, 0],
+                        [0, 0, 1, 0],
+                        [0, 1, 0, 0],
+                        [0, 0, 1, 0]
+                    ],
+                    // Wzór 17: Random singles 1
+                    [
+                        [0, 0, 1, 0],
+                        [1, 0, 0, 0],
+                        [0, 0, 0, 1],
+                        [0, 1, 0, 0]
+                    ],
+                    // Wzór 18: Random singles 2
+                    [
+                        [0, 0, 0, 1],
+                        [0, 1, 0, 0],
+                        [1, 0, 0, 0],
+                        [0, 0, 1, 0]
+                    ],
+                    // Wzór 19: Sparse pattern
+                    [
+                        [1, 0, 0, 0],
+                        [0, 0, 0, 0],
+                        [0, 0, 1, 0],
+                        [0, 0, 0, 0],
+                        [0, 1, 0, 0]
+                    ],
+                    // Wzór 20: Edge pairs (opcjonalne)
+                    [
+                        [1, 0, 0, 1],
+                        [0, 0, 0, 0],
+                        [0, 0, 0, 0],
+                        [1, 0, 0, 1]
+                    ],
+                    // Wzór 21: Pojedyncze z przerwami
+                    [
+                        [0, 1, 0, 0],
+                        [0, 0, 0, 0],
+                        [0, 0, 0, 1],
+                        [0, 0, 0, 0],
+                        [1, 0, 0, 0]
+                    ]
+                ];
+                  const selectedPattern = patterns[Math.floor(Math.random() * patterns.length)];
+                gameState.currentPattern = {
+                    pattern: selectedPattern,
+                    rowIndex: 0,
+                    hasMultiHit: false
+                };
+                
+                console.log('Nowy wzór wybrany:', selectedPattern);
+            }
+            
+            // Sprawdź czy currentRow istnieje
+            if (!gameState.currentPattern.pattern[gameState.currentPattern.rowIndex]) {
+                console.warn('Brakuje wiersza w pattern, przechodzę do następnego wzoru');
+                gameState.currentPattern.rowIndex = gameState.currentPattern.pattern.length; // Wymusi nowy wzór
+                return;
+            }            // Wygeneruj kafelki dla aktualnego rzędu
+            const currentRow = gameState.currentPattern.pattern[gameState.currentPattern.rowIndex];
+            const baseY = -150 - (gameState.currentPattern.rowIndex * 100); // Zmniejszone z 120 na 100 - jeszcze mniejsze odstępy
+              // Sprawdź kolizje z istniejącymi kafelkami w tej samej wysokości
+            const conflictExists = gameState.tiles.some(tile => 
+                Math.abs(tile.y - baseY) < 150 && !tile.isClicked // Zwiększone z 100 na 150 dla lepszej separacji
+            );
+            
+            if (conflictExists) {
+                console.log('Kolizja kafelków na wysokości', baseY, 'pomijam generowanie');
+                gameState.currentPattern.rowIndex++;
+                return;
+            }
+              let tilesInRow = 0;
+            currentRow.forEach((shouldSpawn) => {
+                if (shouldSpawn === 1) tilesInRow++;
+            });
+            
+            // Walidacja - nigdy więcej niż 2 kafelki w rzędzie
+            if (tilesInRow > 2) {
+                console.warn(`Rząd ma ${tilesInRow} kafelków, pomijam generowanie`);
+                gameState.currentPattern.rowIndex++;
+                return;
+            }
+            
+            console.log(`Generuję wiersz ${gameState.currentPattern.rowIndex} z ${tilesInRow} kafelkami`);
+            
+            currentRow.forEach((shouldSpawn, laneIndex) => {
+                if (shouldSpawn === 1) {
+                    // Losowanie typu klocka
+                    let tileType = 'normal';
+                    const rand = Math.random();
+                    
+                    // Bomby - 5% szans po 30 punktach + cooldown 10 sekund
+                    const timeSinceLastBomb = performance.now() - (gameState.lastBombTime || 0);
+                    if (rand < 0.05 && gameState.score > 30 && timeSinceLastBomb > 10000) {
+                        tileType = 'bomb';
+                    }
+                    // Heal tiles - 8% szans po 15 punktach, tylko gdy nie masz pełnego życia lub rzadko gdy masz
+                    else if (rand < 0.13 && gameState.score > 15 && (gameState.lives < 3 || rand < 0.03)) {
+                        tileType = 'heal';
+                    }
+                    // Speed boost - 15% szans po 20 punktach, NIE PODCZAS speed boost
+                    else if (rand < 0.28 && gameState.score > 20 && !gameState.speedBoostActive) {
+                        tileType = 'speed-boost';
+                    } 
+                    // Multi-hit - 15% szans po 10 punktach, TYLKO jeśli jeden kafelek w rzędzie
+                    else if (rand < 0.43 && gameState.score > 10 && tilesInRow === 1 && 
+                            !gameState.currentPattern.hasMultiHit && !gameState.speedBoostActive) {
+                        tileType = 'multi-hit';
+                        gameState.currentPattern.hasMultiHit = true;
+                        console.log('Tworzę multi-hit tile w kolumnie', laneIndex);
+                    }
+                    
+                    const newTile = new PianoTile(laneIndex, baseY, tileType);
+                    newTile.rowId = gameState.currentPattern.rowIndex;
+                    gameState.tiles.push(newTile);
+                }
+            });
+            
+            gameState.currentPattern.rowIndex++;
+        }
+
+        // ===== FUNKCJE STEROWANIA GRĄ =====        // Rozpoczęcie gry
+        function startGame() {
+            // Reset cooldownów klawiatury
+            keyboardCooldowns = {0: 0, 1: 0, 2: 0, 3: 0};
+            
+            // Reset stanu gry
+            gameState = {
+                isPlaying: true,
+                isPaused: false,
+                score: 0,
+                speed: 1,
+                combo: 0,
+                lives: 3, // Dodaj lives
+                tiles: [],                lastTileTime: 0,
+                tileInterval: 400, // Zmniejszone z 600 na 400 - częstsze klocki
+                gameStartTime: performance.now(),
+                soundEnabled: gameState.soundEnabled || true,
+                volume: gameState.volume || 0.5,            musicVolume: gameState.musicVolume || 0.1,
+            currentPattern: null, // Zmiana z currentSection na currentPattern
+            backgroundMusic: null,
+                gameOverMusic: null,
+                speedBoostActive: false,
+                speedBoostEnd: 0,
+                rowsWithLostLives: new Set() // Reset śledzonego systemu
+            };
+
+            // Ukrycie menu i pokazanie gry
+            hideAllPanels();
+            elements.gameBoard.style.display = 'block';
+            elements.gameUI.style.display = 'block';
+
+            // Wyczyszczenie planszy
+            clearGameBoard();
+
+            // Aktualizacja UI
+            updateScore();
+            updateLivesDisplay();
+
+            // Uruchomienie pętli gry
+            lastTime = performance.now();
+            gameLoop = requestAnimationFrame(gameUpdate);
+
+            // Zatrzymanie muzyki menu
+            audioGen.stopMenuMusic();
+
+            // Na końcu funkcji:
+            setTimeout(() => {
+                generateNewTile();
+                audioGen.createBackgroundMusic();
+            }, 500);
+        }
+
+        // Powrót do menu
+        function backToMenu() {
+            if (gameState.isPlaying) {
+                gameState.isPlaying = false;
+                cancelAnimationFrame(gameLoop);
+            }
+            
+            // Zatrzymanie wszystkich muzyk
+            audioGen.stopAllMusic();
+            
+            hideAllPanels();
+            clearGameBoard();
+            elements.mainMenu.style.display = 'block';
+            
+            // Uruchomienie muzyki menu
+            setTimeout(() => {
+                audioGen.createMenuMusic();
+            }, 300);
+        }        // Zakończenie gry
+        function endGame() {
+            gameState.isPlaying = false;
+            gameState.speedBoostActive = false; // Zatrzymanie boost
+            cancelAnimationFrame(gameLoop);
+
+            // Zatrzymanie wszystkich muzyk
+            audioGen.stopAllMusic();
+            audioGen.createGameOverMusic();
+
+            // Zawsze pozwól graczowi wprowadzić nazwę jeśli zdobył jakiekolwiek punkty
+            if (gameState.score > 0) {
+                // Wyświetlenie okna wprowadzania nazwy
+                setTimeout(() => {
+                    document.getElementById('nameInputModal').style.display = 'block';
+                    document.getElementById('playerName').focus();
+                }, 1000);
+            } else {
+                // Jeśli brak punktów, od razu pokaż game over
+                showGameOverScreen();
+            }
+        }
+
+        // ===== OBSŁUGA NAZWY GRACZA =====
+
+        // Zapisanie wyniku z nazwą gracza
+        function savePlayerScore() {
+            const nameInput = document.getElementById('playerName');
+            const playerName = nameInput.value.trim() || 'Anonim';
+            
+            saveScore(gameState.score, playerName);
+            
+            // Ukrycie okna wprowadzania nazwy
+            document.getElementById('nameInputModal').style.display = 'none';
+            nameInput.value = '';
+            
+            // Wyświetlenie ekranu game over
+            showGameOverScreen();
+        }
+
+        // Pominięcie wprowadzania nazwy
+        function skipNameInput() {
+            saveScore(gameState.score, 'Anonim');
+            
+            // Ukrycie okna wprowadzania nazwy
+            document.getElementById('nameInputModal').style.display = 'none';
+            document.getElementById('playerName').value = '';
+            
+            // Wyświetlenie ekranu game over
+            showGameOverScreen();
+        }
+
+        // Wyświetlenie ekranu game over
+        function showGameOverScreen() {
+            elements.finalScore.textContent = gameState.score;
+            elements.bestScore.textContent = getBestScore();
+            elements.gameOver.style.display = 'block';
+        }
+        
+
+        // Restart gry
+        function restartGame() {
+            elements.gameOver.style.display = 'none';
+            clearGameBoard();
+            startGame();
+        }
+
+        // Powrót do menu
+        function backToMenu() {
+            if (gameState.isPlaying) {
+                gameState.isPlaying = false;
+                cancelAnimationFrame(gameLoop);
+            }
+            
+            // Zatrzymanie wszystkich muzyk
+            audioGen.stopAllMusic();
+            
+            hideAllPanels();
+            clearGameBoard();
+            elements.mainMenu.style.display = 'block';
+            
+            // Uruchomienie muzyki menu
+            setTimeout(() => {
+                audioGen.createMenuMusic();
+            }, 300);
+        }
+
+        // Wyczyszczenie planszy gry
+        function clearGameBoard() {
+            gameState.tiles.forEach(tile => tile.remove());
+            gameState.tiles = [];
+
+            // Usunięcie wszystkich kafelków z DOM
+            const lanes = document.querySelectorAll('.game-lane');
+            lanes.forEach(lane => {
+                const tiles = lane.querySelectorAll('.piano-tile');
+                tiles.forEach(tile => tile.remove());
+            });
+
+            // Usunięcie efektów wizualnych
+            const particles = document.querySelectorAll('.particle');
+            particles.forEach(particle => particle.remove());
+
+            const comboTexts = document.querySelectorAll('.combo-text');
+            comboTexts.forEach(text => text.remove());
+        }
+
+        // Ukrycie wszystkich paneli
+        function hideAllPanels() {
+            elements.mainMenu.style.display = 'none';
+            elements.gameBoard.style.display = 'none';
+            elements.gameUI.style.display = 'none';
+            elements.gameOver.style.display = 'none';
+            elements.settingsPanel.style.display = 'none';
+            elements.leaderboard.style.display = 'none';
+            
+            // Ukrycie okna nazwy
+            const nameModal = document.getElementById('nameInputModal');
+            if (nameModal) {
+                nameModal.style.display = 'none';
+            }
+        }
+
+        // ===== SYSTEM PUNKTACJI =====
+
+        // Aktualizacja wyświetlania wyniku
+        function updateScore() {
+            elements.scoreValue.textContent = gameState.score;
+            elements.speedValue.textContent = gameState.speed.toFixed(1);
+        }
+
+        // Zwiększenie prędkości gry
+        function increaseSpeed() {
+            gameState.speed += 0.2;
+            gameState.tileInterval = Math.max(300, gameState.tileInterval - 40); // Szybsze generowanie
+            
+            // Efekt wizualny zwiększenia prędkości
+            elements.speedValue.style.animation = 'pulse 0.5s ease-in-out';
+            setTimeout(() => {
+                elements.speedValue.style.animation = '';
+            }, 500);
+        }
+
+        // ===== SYSTEM WYNIKÓW LOKALNYCH =====
+
+        // Zapisanie wyniku
+        function saveScore(score, playerName = 'Anonim') {
+            let scores = getStoredScores();
+            const now = new Date();
+            
+            scores.push({
+                score: score,
+                name: playerName,
+                date: now.toLocaleDateString('pl-PL'),
+                time: now.toLocaleTimeString('pl-PL', { 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                })
+            });
+
+            // Sortowanie wyników malejąco
+            scores.sort((a, b) => b.score - a.score);
+
+            // Zachowanie tylko 10 najlepszych wyników
+            scores = scores.slice(0, 10);
+
+            localStorage.setItem('tileStormScores', JSON.stringify(scores));
+        }
+
+        // Pobranie zapisanych wyników
+        function getStoredScores() {
+            const stored = localStorage.getItem('tileStormScores');
+            return stored ? JSON.parse(stored) : [];
+        }
+
+        // Pobranie najlepszego wyniku
+        function getBestScore() {
+            const scores = getStoredScores();
+            return scores.length > 0 ? scores[0].score : 0;
+        }
+
+        // Wyświetlenie tabeli wyników
+        function showLeaderboard() {
+            hideAllPanels();
+            elements.leaderboard.style.display = 'block';
+            updateLeaderboardDisplay();
+        }
+
+        // Aktualizacja wyświetlania tabeli wynikóww
+        function updateLeaderboardDisplay() {
+            const scores = getStoredScores();
+            const listElement = elements.leaderboardList;
+            
+            listElement.innerHTML = '';
+
+            if (scores.length === 0) {
+                listElement.innerHTML = '<p>Brak zapisanych wyników</p>';
+                return;
+            }
+
+            scores.forEach((score, index) => {
+                const entryElement = document.createElement('div');
+                entryElement.className = 'score-entry';
+                
+                // Podświetlenie najnowszego wyniku
+                if (index === 0 && score.score === gameState.score) {
+                    entryElement.classList.add('highlight');
+                }
+
+                entryElement.innerHTML = `
+                    <span>${index + 1}. ${score.name} - ${score.score} pkt</span>
+                    <span>${score.date} ${score.time}</span>
+                `;
+
+                listElement.appendChild(entryElement);
+            });
+        }
+
+        // Wyczyszczenie tabeli wyników
+        function clearLeaderboard() {
+            if (confirm('Czy na pewno chcesz wyczyścić wszystkie wyniki?')) {
+                localStorage.removeItem('tileStormScores');
+                updateLeaderboardDisplay();
+            }
+        }
+
+        // ===== EFEKTY WIZUALNE =====
+
+        // Efekt combo
+        function showComboEffect() {
+            const comboElement = document.createElement('div');
+            comboElement.className = 'combo-text';
+            comboElement.textContent = `COMBO x${gameState.combo}!`;
+            
+            // Pozycjonowanie na środku planszy
+            comboElement.style.left = '50%';
+            comboElement.style.top = '300px';
+            comboElement.style.transform = 'translateX(-50%)';
+            
+            elements.gameBoard.appendChild(comboElement);
+
+            // Usunięcie po animacji
+            setTimeout(() => {
+                if (comboElement.parentNode) {
+                    comboElement.parentNode.removeChild(comboElement);
+                }
+            }, 1000);
+        }
+
+        // Efekt cząsteczkowy
+        function createParticleEffect(lane, color = '#27ae60') {
+            const particleCount = 12;
+            const laneWidth = 100;
+            const laneX = lane * laneWidth + 50;
+
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                
+                const startX = laneX + (Math.random() - 0.5) * 40;
+                const startY = 500;
+                
+                particle.style.left = startX + 'px';
+                particle.style.top = startY + 'px';
+                particle.style.background = color;
+                
+                elements.gameBoard.appendChild(particle);
+
+                const animation = particle.animate([
+                    {
+                        transform: 'translate(0, 0) scale(1)',
+                        opacity: 1
+                    },
+                    {
+                        transform: `translate(${(Math.random() - 0.5) * 100}px, ${-50 - Math.random() * 50}px) scale(0)`,
+                        opacity: 0
+                    }
+                ], {
+                    duration: 800,
+                    easing: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)'
+                });
+
+                animation.onfinish = () => {
+                    if (particle.parentNode) {
+                        particle.parentNode.removeChild(particle);
+                    }
+                };
+            }
+        }
+
+        // ===== OBSŁUGA USTAWIEŃ DŹWIĘKU =====
+
+        // Wyświetlenie panelu ustawień
+        function showSettings() {
+            hideAllPanels();
+            elements.settingsPanel.style.display = 'block';
+            updateSettingsDisplay();
+        }
+
+        // Aktualizacja wyświetlania ustawień
+        function updateSettingsDisplay() {
+            if (elements.volumeSlider) {
+                elements.volumeSlider.value = (gameState.volume || 0.5) * 100;
+            }
+            if (elements.volumeValue) {
+                elements.volumeValue.textContent = Math.round((gameState.volume || 0.5) * 100);
+            }
+            
+            // Obsługa suwaka muzyki
+            const musicVolumeSlider = document.getElementById('musicVolumeSlider');
+            const musicVolumeValue = document.getElementById('musicVolumeValue');
+            if (musicVolumeSlider) {
+                musicVolumeSlider.value = (gameState.musicVolume || 0.1) * 100;
+            }
+            if (musicVolumeValue) {
+                musicVolumeValue.textContent = Math.round((gameState.musicVolume || 0.1) * 100);
+            }
+            
+            if (elements.soundToggle) {
+                elements.soundToggle.textContent = gameState.soundEnabled ? 'Dźwięk: Włączony' : 'Dźwięk: Wyłączony';
+                elements.soundToggle.className = gameState.soundEnabled ? 'sound-toggle' : 'sound-toggle muted';
+            }
+        }
+
+        // Przełączenie dźwięku
+        function toggleSound() {
+            gameState.soundEnabled = !gameState.soundEnabled;
+            updateSettingsDisplay();
+            
+            // Zapisanie ustawień
+            localStorage.setItem('tileStormSoundEnabled', gameState.soundEnabled);
+        }
+
+        // ===== OBSŁUGA ZDARZEŃ =====
+
+        // Obsługa suwaka głośności
+        elements.volumeSlider.addEventListener('input', (e) => {
+            gameState.volume = e.target.value / 100;
+            elements.volumeValue.textContent = e.target.value;
+            
+            // Zapisanie ustawień
+            localStorage.setItem('tileStormVolume', gameState.volume);
+            
+            // Test dźwięku
+            audioGen.playPianoNote(440, 0.2);
+        });        // Obsługa kliknięć poza kafelkami (tracenie życia)
+        elements.gameBoard.addEventListener('mousedown', (e) => {
+            if (!gameState.isPlaying) return;
+            
+            // Sprawdź czy kliknięto bezpośrednio w tło planszy lub w pustą ścieżkę
+            if (e.target === elements.gameBoard || e.target.classList.contains('game-lane')) {
+                console.log('Kliknięto w tło - tracisz życie!');
+                
+                // Tracenie życia za kliknięcie w tło
+                if (gameState.lives > 0) {
+                    gameState.lives--;
+                    gameState.combo = 0;
+                    updateLivesDisplay(true);
+                    audioGen.playErrorSound();
+                    
+                    // Wyczyszczenie planszy jak przy normalnej utracie życia
+                    clearAllTiles();
+                    
+                    // Zwolnienie gry
+                    if (gameState.speed > 1) {
+                        gameState.speed = Math.max(1, gameState.speed - 0.3);
+                        gameState.tileInterval = Math.min(1000, gameState.tileInterval + 100);
+                    }
+                    
+                    if (gameState.lives <= 0) {
+                        endGame();
+                    }
+                }
+            }
+        });// System zapobiegający spamowaniu klawiatury
+        let keyboardCooldowns = {0: 0, 1: 0, 2: 0, 3: 0}; // Cooldown dla każdej ścieżki
+        const KEYBOARD_COOLDOWN = 100; // 100ms cooldown między naciśnięciami tej samej ścieżki
+
+        // Obsługa klawiatury
+        document.addEventListener('keydown', (e) => {
+            if (!gameState.isPlaying) return;
+
+            // Klawisze 1-4 dla ścieżek
+            const key = e.key;
+            let lane = -1;
+
+            if (key >= '1' && key <= '4') {
+                lane = parseInt(key) - 1;
+            } else if (key === 'a' || key === 'A') {
+                lane = 0;
+            } else if (key === 's' || key === 'S') {
+                lane = 1;
+            } else if (key === 'd' || key === 'D') {
+                lane = 2;
+            } else if (key === 'f' || key === 'F') {
+                lane = 3;
+            }
+
+            if (lane >= 0 && lane < 4) {
+                const currentTime = performance.now();
+                
+                // Sprawdź cooldown dla tej ścieżki
+                if (currentTime - keyboardCooldowns[lane] < KEYBOARD_COOLDOWN) {
+                    console.log(`Cooldown aktywny dla ścieżki ${lane}, ignoruję naciśnięcie`);
+                    return;
+                }
+                
+                // Znajdź wszystkie aktywne kafelki w danej ścieżce (tylko normalne i multi-hit)
+                const tilesInLane = gameState.tiles.filter(tile => 
+                    tile.lane === lane && !tile.isClicked && 
+                    tile.type !== 'speed-boost' && tile.type !== 'bomb' && tile.type !== 'heal'
+                );
+                
+                // Sortuj według pozycji Y (najniższy pierwszy)
+                tilesInLane.sort((a, b) => b.y - a.y);                if (tilesInLane.length > 0) {
+                    // Sprawdź czy najniższy kafelek jest dostępny dla klawiatury
+                    const lowestTile = tilesInLane[0];
+                    // Klawiatura może klikać kafelki bez ograniczeń pozycji
+                    keyboardCooldowns[lane] = currentTime;
+                    lowestTile.handleClick();
+                } else {
+                    // Brak kafelków w ścieżce - tracenie życia za błędne naciśnięcie
+                    console.log(`Brak kafelków w ścieżce ${lane} - tracisz życie!`);
+                    keyboardCooldowns[lane] = currentTime;
+                    // Symuluj utratę życia
+                    if (gameState.lives > 0) {
+                        gameState.lives--;
+                        gameState.combo = 0;
+                        updateLivesDisplay(true);
+                        audioGen.playErrorSound();
+                        
+                        if (gameState.lives <= 0) {
+                            endGame();
+                        }
+                    }
+                }
+            }
+
+            // Pauza/wznowienie gry
+            if (key === ' ' || key === 'Escape') {
+                e.preventDefault();
+                togglePause();
+            }
+        });
+
+        // Pauza/wznowienie gry
+        function togglePause() {
+            if (!gameState.isPlaying) return;
+
+            gameState.isPaused = !gameState.isPaused;
+            
+            if (gameState.isPaused) {
+                cancelAnimationFrame(gameLoop);
+                // Wyświetl informację o pauzie
+                const pauseElement = document.createElement('div');
+                pauseElement.id = 'pauseOverlay';
+                pauseElement.style.cssText = `
+                    position: absolute;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    background: rgba(0, 0, 0, 0.8);
+                    color: white;
+                    padding: 20px;
+                    border-radius: 10px;
+                    font-size: 1.5em;
+                    z-index: 150;
+                `;
+                pauseElement.textContent = 'PAUZA - Naciśnij SPACJĘ aby kontynuować';
+                elements.gameBoard.appendChild(pauseElement);
+            } else {
+                const pauseElement = document.getElementById('pauseOverlay');
+                if (pauseElement) {
+                    pauseElement.remove();
+                }
+                lastTime = performance.now();
+                gameLoop = requestAnimationFrame(gameUpdate);
+            }
+        }
+
+        // ===== INSTRUKCJE GRY =====
+        function showInstructions() {
+            alert(`⚡ TILE STORM - INSTRUKCJE
+
+        🎯 CEL GRY:
+        Klikaj czarne kafelki w odpowiedniej kolejności (od dołu). Nie pozwól żeby żaden kafelek spadł poza planszę!
+
+        ❤️ SYSTEM ŻYĆ:
+        • Masz 3 życia na początku gry
+        • Tracisz życie gdy klikniesz zły kafelek lub nie klikniesz w porę
+        • Po utracie życia plansza się czyści i gra zwalnia
+        • Gdy zostanie 1 życie - krytyczny tryb (czerwone miganie)
+
+        🎮 STEROWANIE:
+        • Mysz - Klikaj kafelki
+        • Klawisze 1-4 lub A-S-D-F - Ścieżki 1-4
+        • SPACJA/ESC - Pauza
+
+        🎨 TYPY KAFELKÓW:
+        • ⚫ Zwykłe (1 punkt)
+        • 🟠 Multi-hit (2-3 kliknięcia = 2-3 punkty)
+        • 🟣 Speed Boost (3 punkty + przyspieszenie + x2 punkty - opcjonalne)
+        • 💣 Bomba (5 pkt jeśli klikniesz podczas speed boost, eksploduje na dnie i daje punkty za zniszczone kafelki)
+        • 💚 Leczenie (przywraca życie lub +6 pkt przy pełnym życiu - zawsze bezpieczne)
+
+        📈 PUNKTACJA:
+        • Podstawowe punkty za każdy kafelek
+        • Bonus za combo (co 10 trafień)
+        • x2 punkty podczas Speed Boost
+        • Mnożnik combo zwiększa punkty
+        • Bomby dają punkty za każdy zniszczony kafelek
+
+        ⚠️ KONIEC GRY:
+        • Utrata wszystkich 3 żyć
+        • Kliknięcie poza kafelkami
+        • Dotknięcie bomby bez speed boost`);
+        }
+        // ===== INICJALIZACJA =====
+        function initializeGame() {
+            // Wczytanie zapisanych ustawień
+            const savedVolume = localStorage.getItem('tileStormVolume');
+            const savedSoundEnabled = localStorage.getItem('tileStormSoundEnabled');
+            const savedMusicVolume = localStorage.getItem('tileStormMusicVolume');
+
+            if (savedVolume !== null) {
+                gameState.volume = parseFloat(savedVolume);
+            }
+
+            if (savedSoundEnabled !== null) {
+                gameState.soundEnabled = savedSoundEnabled === 'true';
+            }
+
+            if (savedMusicVolume !== null) {
+                gameState.musicVolume = parseFloat(savedMusicVolume);
+            }
+
+            // Aktualizacja wyświetlania najlepszego wyniku w menu
+            const bestScore = getBestScore();
+            if (bestScore > 0) {
+                const bestScoreElement = document.createElement('p');
+                bestScoreElement.style.cssText = 'margin-top: 20px; color: #666; font-size: 1.1em;';
+                bestScoreElement.textContent = `🏆 Najlepszy wynik: ${bestScore}`;
+                elements.mainMenu.appendChild(bestScoreElement);
+            }
+
+            // Inicjalizacja kontekstu audio po interakcji użytkownika
+            document.addEventListener('click', () => {
+                if (audioGen.audioContext && audioGen.audioContext.state === 'suspended') {
+                    audioGen.audioContext.resume();
+                }
+            }, { once: true });
+
+            console.log('⚡ Tile Storm - Gra załadowana pomyślnie!');
+
+            // Uruchom muzykę menu po załadowaniu
+            setTimeout(() => {
+                if (!gameState.isPlaying) {
+                    audioGen.createMenuMusic();
+                }
+            }, 500);
+        }
+
+        // Uruchomienie inicjalizacji po załadowaniu strony
+        window.addEventListener('load', initializeGame);
+
+        // Event listnery
+        document.addEventListener('DOMContentLoaded', () => {
+            // Obsługa suwaka muzyki
+            const musicVolumeSlider = document.getElementById('musicVolumeSlider');
+            if (musicVolumeSlider) {
+                musicVolumeSlider.addEventListener('input', (e) => {
+                    gameState.musicVolume = e.target.value / 100;
+                    const musicVolumeValue = document.getElementById('musicVolumeValue');
+                    if (musicVolumeValue) {
+                        musicVolumeValue.textContent = e.target.value;
+                    }
+                    localStorage.setItem('tileStormMusicVolume', gameState.musicVolume);
+                    
+                    // Kontrola muzyki na podstawie głośności
+                    if (gameState.musicVolume === 0) {
+                        audioGen.stopAllMusic();
+                    } else if (!gameState.isPlaying) {
+                        audioGen.stopMenuMusic();
+                        setTimeout(() => audioGen.createMenuMusic(), 100);
+                    }
+                });
+            }
+
+            // Debug - sprawdź czy wszystkie elementy istnieją
+            console.log('Elementy DOM:', {
+                mainMenu: !!elements.mainMenu,
+                gameBoard: !!elements.gameBoard,
+                gameUI: !!elements.gameUI,
+                gameOver: !!elements.gameOver,
+                settingsPanel: !!elements.settingsPanel,
+                leaderboard: !!elements.leaderboard
+            });
+        });
+    </script>
+</body>
+</html>
