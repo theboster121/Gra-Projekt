@@ -606,6 +606,98 @@
             50% { opacity: 1; transform: scale(1.2); }
             100% { opacity: 0; transform: scale(1); }
         }
+
+        /* ===== PANEL INSTRUKCJI ===== */
+        .instructions-panel {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            text-align: left;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            display: none;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .instructions-title {
+            font-size: 2.2em;
+            margin-bottom: 20px;
+            color: #333;
+            text-align: center;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .instruction-section {
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+
+        .instruction-section h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 1.3em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .instruction-section ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+
+        .instruction-section li {
+            margin: 8px 0;
+            line-height: 1.4;
+        }
+
+        .tile-types {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin: 15px 0;
+        }
+
+        .tile-type {
+            background: rgba(255, 255, 255, 0.7);
+            padding: 10px;
+            border-radius: 8px;
+            border-left: 3px solid #667eea;
+        }
+
+        .tile-type .tile-name {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .tile-type .tile-desc {
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        /* Responsywność dla instrukcji */
+        @media (max-width: 768px) {
+            .instructions-panel {
+                padding: 20px;
+                margin: 10px;
+                max-width: 95vw;
+            }
+            
+            .instructions-title {
+                font-size: 1.8em;
+            }
+            
+            .tile-types {
+                grid-template-columns: 1fr;
+            }
+        }
+
     </style>
 </head>
 <body>
@@ -627,7 +719,9 @@
             <div class="game-lane" data-lane="1"></div>
             <div class="game-lane" data-lane="2"></div>
             <div class="game-lane" data-lane="3"></div>
-        </div>        <!-- ===== INTERFEJS GRY ===== -->
+        </div>        
+        
+        <!-- ===== INTERFEJS GRY ===== -->
         <div class="game-ui" id="gameUI">
             <div class="score-display">
                 <div class="score-line">
@@ -666,6 +760,92 @@
                 <button class="sound-toggle" id="soundToggle" onclick="toggleSound()">Dźwięk: Włączony</button>
             </div>
             <button class="menu-button" onclick="backToMenu()">Powrót</button>
+        </div>
+
+                <!-- ===== PANEL INSTRUKCJI ===== -->
+        <div class="instructions-panel" id="instructionsPanel">
+            <h2 class="instructions-title">⚡ Tile Storm - Instrukcje</h2>
+            
+            <div class="instruction-section">
+                <h3>🎯 Cel Gry</h3>
+                <p>Klikaj kolorowe kafelki w odpowiedniej kolejności (od dołu do góry). Nie pozwól żeby żaden kafelek spadł poza planszę!</p>
+            </div>
+            
+            <div class="instruction-section">
+                <h3>❤️ System Żyć</h3>
+                <ul>
+                    <li>Masz <strong>3 życia</strong> na początku gry</li>
+                    <li>Tracisz życie gdy klikniesz zły kafelek lub nie klikniesz w porę</li>
+                    <li>Po utracie życia plansza się czyści i gra zwalnia</li>
+                </ul>
+            </div>
+            
+            <div class="instruction-section">
+                <h3>🎮 Sterowanie</h3>
+                <ul>
+                    <li><strong>Mysz:</strong> Klikaj kafelki lewym przyciskiem</li>
+                    <li><strong>Klawisze 1-4:</strong> Ścieżki od lewej do prawej</li>
+                    <li><strong>Klawisze A-S-D-F:</strong> Alternatywne sterowanie ścieżkami</li>
+                    <li><strong>SPACJA/ESC:</strong> Pauza gry</li>
+                </ul>
+            </div>
+            
+            <div class="instruction-section">
+                <h3>🎨 Typy Kafelków</h3>
+                <div class="tile-types">
+                    <div class="tile-type">
+                        <div class="tile-name">⚫ Zwykłe Kafelki</div>
+                        <div class="tile-desc">Podstawowe kafelki - 1 punkt za każdy</div>
+                    </div>
+                    <div class="tile-type">
+                        <div class="tile-name">🟠 Multi-hit</div>
+                        <div class="tile-desc">Wymagają 2-3 kliknięć, dają tyle punktów ile kliknięć + spowalniają grę</div>
+                    </div>
+                    <div class="tile-type">
+                        <div class="tile-name">🟣 Speed Boost</div>
+                        <div class="tile-desc">3 punkty + przyspieszenie + podwójne punkty przez 5 sekund (opcjonalne)</div>
+                    </div>
+                    <div class="tile-type">
+                        <div class="tile-name">💣 Bomba</div>
+                        <div class="tile-desc">NIE DOTYKAJ! Chyba że masz Speed Boost - wtedy +5 pkt. Eksploduje na dnie niszcząc wszystkie kafelki (dostajesz za nie punkty)</div>
+                    </div>
+                    <div class="tile-type">
+                        <div class="tile-name">💚 Leczenie</div>
+                        <div class="tile-desc">Przywraca życie lub daje +6 pkt przy pełnym życiu (zawsze bezpieczne)</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="instruction-section">
+                <h3>📈 System Punktacji</h3>
+                <ul>
+                    <li>Podstawowe punkty za każdy kafelek</li>
+                    <li><strong>Combo bonus:</strong> Co 10 trafień zwiększa mnożnik</li>
+                    <li><strong>Speed Boost:</strong> Podwójne punkty przez 5 sekund</li>
+                    <li><strong>Bomby:</strong> Punkty za każdy zniszczony przez nie kafelek przy eksplozji</li>
+                    <li>Im wyższy wynik, tym szybsza gra!</li>
+                </ul>
+            </div>
+            
+            <div class="instruction-section">
+                <h3>⚠️ Koniec Gry</h3>
+                <ul>
+                    <li>Utrata wszystkich 3 żyć</li>
+                </ul>
+            </div>
+            
+            <div class="instruction-section">
+                <h3>💡 Wskazówki</h3>
+                <ul>
+                    <li>Klikaj zawsze <strong>najniższy kafelek</strong> w każdej ścieżce</li>
+                    <li>Speed Boost kafelki możesz ignorować bez kary</li>
+                    <li>Heal kafelki zawsze klikaj - są bezpieczne i pomocne</li>
+                    <li>Podczas Speed Boost możesz bezpiecznie klikać bomby</li>
+                    <li>Multi-hit kafelki spowalniają grę po zniszczeniu</li>
+                </ul>
+            </div>
+            
+            <button class="menu-button" onclick="backToMenu()">Powrót do Menu</button>
         </div>
 
         <!-- ===== TABELA WYNIKÓW ===== -->
@@ -717,22 +897,23 @@
 
         // ===== ELEMENTY DOM =====
         const elements = {
-            mainMenu: document.getElementById('mainMenu'),
-            gameBoard: document.getElementById('gameBoard'),
-            gameUI: document.getElementById('gameUI'),
-            gameOver: document.getElementById('gameOver'),
-            settingsPanel: document.getElementById('settingsPanel'),
-            leaderboard: document.getElementById('leaderboard'),
-            scoreValue: document.getElementById('scoreValue'),
-            speedValue: document.getElementById('speedValue'),
-            finalScore: document.getElementById('finalScore'),
-            bestScore: document.getElementById('bestScore'),
-            volumeSlider: document.getElementById('volumeSlider'),
-            volumeValue: document.getElementById('volumeValue'),
-            soundToggle: document.getElementById('soundToggle'),
-            leaderboardList: document.getElementById('leaderboardList'),
-            playerNameInput: document.getElementById('playerName'),
-            nameInputModal: document.getElementById('nameInputModal')
+                mainMenu: document.getElementById('mainMenu'),
+                gameBoard: document.getElementById('gameBoard'),
+                gameUI: document.getElementById('gameUI'),
+                gameOver: document.getElementById('gameOver'),
+                settingsPanel: document.getElementById('settingsPanel'),
+                leaderboard: document.getElementById('leaderboard'),
+                instructionsPanel: document.getElementById('instructionsPanel'), // NOWE
+                scoreValue: document.getElementById('scoreValue'),
+                speedValue: document.getElementById('speedValue'),
+                finalScore: document.getElementById('finalScore'),
+                bestScore: document.getElementById('bestScore'),
+                volumeSlider: document.getElementById('volumeSlider'),
+                volumeValue: document.getElementById('volumeValue'),
+                soundToggle: document.getElementById('soundToggle'),
+                leaderboardList: document.getElementById('leaderboardList'),
+                playerNameInput: document.getElementById('playerName'),
+                nameInputModal: document.getElementById('nameInputModal')
         };
 
         // ===== KLASA GENERATORA DŹWIĘKÓW =====
@@ -2087,6 +2268,7 @@
             elements.gameOver.style.display = 'none';
             elements.settingsPanel.style.display = 'none';
             elements.leaderboard.style.display = 'none';
+            elements.instructionsPanel.style.display = 'none';
             
             // Ukrycie okna nazwy
             const nameModal = document.getElementById('nameInputModal');
@@ -2454,36 +2636,8 @@
 
         // ===== INSTRUKCJE GRY =====
         function showInstructions() {
-            alert(`⚡ TILE STORM - INSTRUKCJE
-
-        🎯 CEL GRY:
-        Klikaj czarne kafelki w odpowiedniej kolejności (od dołu). Nie pozwól żeby żaden kafelek spadł poza planszę!
-
-        ❤️ SYSTEM ŻYĆ:
-        • Masz 3 życia na początku gry
-        • Tracisz życie gdy klikniesz zły kafelek lub nie klikniesz w porę
-        • Po utracie życia plansza się czyści i gra zwalnia
-
-        🎮 STEROWANIE:
-        • Mysz - Klikaj kafelki
-        • Klawisze 1-4 lub A-S-D-F - Ścieżki 1-4
-        • SPACJA/ESC - Pauza
-
-        🎨 TYPY KAFELKÓW:
-        • ⚫ Zwykłe (1 punkt)
-        • 🟠 Multi-hit (2-3 kliknięcia = 2-3 punkty)
-        • 🟣 Speed Boost (3 punkty + przyspieszenie + x2 punkty  *opcjonalne*)
-        • 💣 Bomba (NIE DOTYKAJ - Dotknięcie = strata życia, eksploduje na dnie i daje punkty za zniszczone przez nią kafelki, Podczas speed boosta możesz dotknąć)
-        • 💚 Leczenie (przywraca życie lub +6 pkt przy pełnym życiu - zawsze bezpieczne)
-
-        📈 PUNKTACJA:
-        • Podstawowe punkty za każdy kafelek
-        • Bonus i mnożnik za combo (co 10 trafień)
-        • x2 punkty podczas Speed Boost
-        • Bomby dają punkty za każdy zniszczony przez nie kafelek
-
-        ⚠️ KONIEC GRY:
-        • Utrata wszystkich 3 żyć`);
+            hideAllPanels();
+            elements.instructionsPanel.style.display = 'block';
         }
         // ===== INICJALIZACJA =====
         function initializeGame() {
@@ -2563,7 +2717,8 @@
                 gameUI: !!elements.gameUI,
                 gameOver: !!elements.gameOver,
                 settingsPanel: !!elements.settingsPanel,
-                leaderboard: !!elements.leaderboard
+                leaderboard: !!elements.leaderboard,
+                instructionsPanel: !!elements.instructionsPanel
             });
         });
     </script>
